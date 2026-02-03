@@ -299,25 +299,27 @@
                     >
                 </div>
 
-                <!-- Fecha de Entrada -->
+                <!-- Hora de Entrada -->
                 <div class="form-group">
-                    <label for="fechaEntrada" class="required">Fecha de Entrada</label>
+                    <label for="horaEntrada" class="required">Hora de Entrada</label>
                     <input 
-                        type="date" 
-                        id="fechaEntrada" 
-                        name="fechaEntrada" 
+                        type="time" 
+                        id="horaEntrada" 
+                        name="horaEntrada" 
                         required
+                        step="1800"
                     >
                 </div>
 
-                <!-- Fecha de Salida -->
+                <!-- Hora de Salida -->
                 <div class="form-group">
-                    <label for="fechaSalida" class="required">Fecha de Salida</label>
+                    <label for="horaSalida" class="required">Hora de Salida</label>
                     <input 
-                        type="date" 
-                        id="fechaSalida" 
-                        name="fechaSalida" 
+                        type="time" 
+                        id="horaSalida" 
+                        name="horaSalida" 
                         required
+                        step="1800"
                     >
                 </div>
 
@@ -466,23 +468,34 @@
         registroForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Validar fechas
-            const fechaEntrada = document.getElementById('fechaEntrada').value;
-            const fechaSalida = document.getElementById('fechaSalida').value;
+            // Validar horas
+            const horaEntrada = document.getElementById('horaEntrada').value;
+            const horaSalida = document.getElementById('horaSalida').value;
 
-            if (new Date(fechaSalida) < new Date(fechaEntrada)) {
-                showAlert('error', 'La fecha de salida no puede ser anterior a la de entrada');
+            // Convertir horas a minutos para comparar
+            const [hEntrada, mEntrada] = horaEntrada.split(':').map(Number);
+            const [hSalida, mSalida] = horaSalida.split(':').map(Number);
+            
+            const minutosEntrada = hEntrada * 60 + mEntrada;
+            const minutosSalida = hSalida * 60 + mSalida;
+
+            if (minutosSalida <= minutosEntrada) {
+                showAlert('error', 'La hora de salida debe ser posterior a la hora de entrada');
                 return;
             }
 
-            // Preparar datos
+            // Obtener la fecha actual
+            const hoy = new Date();
+            const fechaHoy = hoy.toLocaleDateString('es-ES');
+
+            // Preparar datos con fecha + hora
             const registro = {
                 usuario: userData.usuario,
                 cliente: document.getElementById('cliente').value,
                 referencia: document.getElementById('referencia').value,
                 cantidad: document.getElementById('cantidad').value,
-                fechaEntrada: fechaEntrada,
-                fechaSalida: fechaSalida
+                fechaEntrada: fechaHoy + ' ' + horaEntrada,
+                fechaSalida: fechaHoy + ' ' + horaSalida
             };
 
             // Deshabilitar botón
@@ -508,6 +521,9 @@
                     registroForm.reset();
                     referenciaSelect.disabled = true;
                     referenciaSelect.innerHTML = '<option value="">Primero selecciona un cliente</option>';
+                    
+                    // Establecer hora actual como hora de entrada por defecto
+                    setHoraActual();
                 } else {
                     showAlert('error', result.message || 'Error al guardar el registro');
                 }
@@ -531,14 +547,33 @@
             }, 5000);
         }
 
+        // Establecer hora actual redondeada a intervalos de 30 min
+        function setHoraActual() {
+            const now = new Date();
+            const horas = now.getHours();
+            let minutos = now.getMinutes();
+            
+            // Redondear a intervalos de 30 minutos
+            if (minutos < 30) {
+                minutos = 0;
+            } else {
+                minutos = 30;
+            }
+            
+            const horaFormateada = String(horas).padStart(2, '0') + ':' + String(minutos).padStart(2, '0');
+            document.getElementById('horaEntrada').value = horaFormateada;
+            
+            // Hora de salida: 1 hora después
+            let horasSalida = horas + 1;
+            if (horasSalida >= 24) horasSalida = 23;
+            const horaSalidaFormateada = String(horasSalida).padStart(2, '0') + ':' + String(minutos).padStart(2, '0');
+            document.getElementById('horaSalida').value = horaSalidaFormateada;
+        }
+
         // Inicializar
         checkSession();
         loadData();
-
-        // Establecer fecha de hoy por defecto
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('fechaEntrada').value = today;
-        document.getElementById('fechaSalida').value = today;
+        setHoraActual();
     </script>
 </body>
 </html>
